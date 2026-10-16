@@ -1,0 +1,939 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>HazTrack — Hazardous Waste Management & Tracking System</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<style>
+  :root{
+    --void:#05080a; --panel:#0a1210; --line:rgba(148,255,205,0.16);
+    --em:#39ffb0; --em-core:#0fe6a0; --em-deep:#0a4d3a; --cyan:#3ce0e8;
+    --mist:#93a6a1; --alert:#ff6a3d; --glow:rgba(57,255,176,0.35);
+  }
+  *{box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
+  body{
+    margin:0; background:
+      radial-gradient(ellipse 120% 80% at 50% -10%, #0d1c17 0%, #05080a 55%, #04060a 100%);
+    color:#fff; font-family:'Inter',sans-serif; overflow-x:hidden;
+  }
+  .display{font-family:'Space Grotesk',sans-serif;}
+  .mono{font-family:'JetBrains Mono',monospace;}
+  a{color:inherit; text-decoration:none;}
+  .wrap{max-width:1240px; margin:0 auto; padding:0 24px;}
+  .grid-bg{
+    background-image:
+      linear-gradient(rgba(148,255,205,0.05) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(148,255,205,0.05) 1px, transparent 1px);
+    background-size:60px 60px;
+  }
+  .glass{background:rgba(8,16,14,0.65); backdrop-filter:blur(16px); border:1px solid var(--line);}
+
+  /* Navbar */
+  nav{position:fixed; top:0; left:0; right:0; z-index:100; height:80px; display:flex; align-items:center;
+      transition:background .4s ease, border-color .4s ease;}
+  nav .wrap{display:flex; align-items:center; justify-content:space-between; width:100%;}
+  nav.scrolled{background:rgba(5,8,10,0.92); border-bottom:1px solid var(--line); backdrop-filter:blur(16px); box-shadow:0 10px 30px rgba(0,0,0,0.5);}
+  .brand{display:flex; align-items:center; gap:12px;}
+  .brand small{display:block; font-size:10px; letter-spacing:.2em; color:var(--mist); margin-top:2px;}
+  .brand strong{font-size:18px; font-weight:600;}
+  .nav-links{display:flex; gap:36px; font-size:14px; color:var(--mist); list-style:none; margin:0; padding:0;}
+  .nav-links a{transition:color .2s; font-weight:500;}
+  .nav-links a:hover{color:#fff; text-shadow:0 0 10px rgba(57,255,176,0.6);}
+  .btn-outline{padding:9px 22px; border-radius:999px; border:1px solid rgba(15,230,160,0.5); font-size:13px; color:var(--em); font-weight:600; transition:all .3s;}
+  .btn-outline:hover{background:rgba(15,230,160,0.15); border-color:var(--em-core); box-shadow:0 0 20px rgba(57,255,176,0.3);}
+  @media (max-width:860px){.nav-links{display:none;} }
+
+  /* Hero */
+  .hero{position:relative; padding:130px 0 60px; min-height:100vh; display:flex; align-items:center;}
+  .hero .glow1{position:absolute; top:-160px; left:20%; width:600px; height:600px; border-radius:50%;
+    background:rgba(10,77,58,0.4); filter:blur(150px); pointer-events:none;}
+  .hero .glow2{position:absolute; bottom:0; right:5%; width:500px; height:500px; border-radius:50%;
+    background:rgba(60,224,232,0.14); filter:blur(140px); pointer-events:none;}
+  .hero-grid{display:grid; grid-template-columns:1fr; gap:40px; align-items:center; position:relative; z-index:10;}
+  @media (min-width:980px){ .hero-grid{grid-template-columns:1.05fr 1fr; gap:40px;} }
+  
+  .eyebrow{display:inline-flex; align-items:center; gap:8px; font-size:11px; letter-spacing:.3em; color:var(--em); margin-bottom:20px;
+    padding:6px 14px; border-radius:999px; background:rgba(15,230,160,0.08); border:1px solid rgba(15,230,160,0.25);}
+  .eyebrow .pulse-dot{width:6px; height:6px; border-radius:50%; background:var(--em); box-shadow:0 0 10px var(--em); animation:pulse 2s infinite;}
+  @keyframes pulse{0%,100%{transform:scale(1); opacity:1;} 50%{transform:scale(1.5); opacity:0.4;}}
+
+  h1{font-size:46px; line-height:1.06; font-weight:700; margin:0; letter-spacing:-0.02em;}
+  h1 span{display:block; opacity:0; animation:rise .7s ease forwards;}
+  h1 span:nth-child(1){animation-delay:.12s;}
+  h1 span:nth-child(2){animation-delay:.28s;}
+  h1 span:nth-child(3){animation-delay:.44s; color:var(--em); text-shadow:0 0 30px rgba(57,255,176,.55);}
+  @media (min-width:768px){ h1{font-size:62px;} }
+  @keyframes rise{from{opacity:0; transform:translateY(18px);} to{opacity:1; transform:translateY(0);}}
+  
+  .lede{margin-top:22px; color:var(--mist); font-size:16px; line-height:1.6; max-width:480px;}
+  .cta-row{margin-top:32px; display:flex; flex-wrap:wrap; gap:16px;}
+  .btn-primary{display:inline-flex; align-items:center; gap:8px; padding:14px 28px; border-radius:999px;
+    background:var(--em-core); color:#04120c; font-weight:600; font-size:14px;
+    box-shadow:0 0 35px rgba(57,255,176,0.3); transition:all .3s;}
+  .btn-primary:hover{filter:brightness(1.15); transform:translateY(-2px); box-shadow:0 0 50px rgba(57,255,176,0.5);}
+  .btn-ghost{display:inline-flex; align-items:center; gap:8px; padding:14px 26px; border-radius:999px;
+    border:1px solid rgba(255,255,255,0.18); font-size:14px; color:rgba(255,255,255,0.9); font-weight:500; transition:all .3s;}
+  .btn-ghost:hover{border-color:rgba(15,230,160,0.6); color:#fff; background:rgba(15,230,160,0.06); transform:translateY(-2px);}
+  
+  .support-row{margin-top:44px; display:flex; flex-wrap:wrap; gap:28px 36px; padding-top:28px; border-top:1px solid rgba(148,255,205,0.1);}
+  .support-item{display:flex; align-items:center; gap:12px;}
+  .support-icon{width:36px; height:36px; border-radius:10px; border:1px solid rgba(15,230,160,0.3);
+    background:rgba(15,230,160,0.05); display:flex; align-items:center; justify-content:center; flex:none;
+    box-shadow:0 0 15px rgba(57,255,176,0.15);}
+  .support-item .t{font-size:14px; font-weight:600; color:#fff;}
+  .support-item .s{font-size:12px; color:var(--mist);}
+
+  /* 3D Visual Container */
+  .chain-3d-stage{
+    position:relative; width:100%; height:540px; max-width:580px; margin:0 auto;
+    perspective:1200px; display:flex; align-items:center; justify-content:center;
+  }
+  .canvas-container{
+    position:absolute; inset:0; width:100%; height:100%;
+    cursor:grab; border-radius:24px;
+  }
+  .canvas-container:active{cursor:grabbing;}
+  
+  /* 3D Glass HUD Overlay */
+  .hud-badge-container{
+    position:absolute; inset:0; pointer-events:none; overflow:hidden; border-radius:24px;
+  }
+  .node-3d-badge{
+    position:absolute; transform:translate(-50%, -50%);
+    pointer-events:auto; cursor:pointer; transition:transform 0.15s ease-out, opacity 0.2s;
+    user-select:none; z-index:20;
+  }
+  .node-pill{
+    background:rgba(6, 14, 12, 0.85); backdrop-filter:blur(12px);
+    border:1px solid rgba(57, 255, 176, 0.4);
+    border-radius:14px; padding:6px 12px; display:flex; align-items:center; gap:8px;
+    box-shadow:0 0 20px rgba(57, 255, 176, 0.2), inset 0 0 10px rgba(57, 255, 176, 0.08);
+    transition:all 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+  }
+  .node-3d-badge:hover .node-pill, .node-3d-badge.active .node-pill{
+    background:rgba(10, 24, 20, 0.95);
+    border-color:var(--em);
+    box-shadow:0 0 30px rgba(57, 255, 176, 0.5), inset 0 0 15px rgba(57, 255, 176, 0.2);
+    transform:scale(1.08);
+  }
+  .node-icon-circle{
+    width:28px; height:28px; border-radius:8px; background:rgba(57, 255, 176, 0.12);
+    border:1px solid rgba(57, 255, 176, 0.4); display:flex; align-items:center; justify-content:center;
+    color:var(--em); flex-shrink:0;
+  }
+  .node-3d-badge:hover .node-icon-circle{
+    background:var(--em); color:#05080a;
+  }
+  .node-text-col{display:flex; flex-direction:column;}
+  .node-num{font-size:9px; font-weight:700; color:var(--em); letter-spacing:.05em;}
+  .node-title{font-size:11px; font-weight:700; color:#fff; letter-spacing:.02em; white-space:nowrap;}
+  .node-sub{font-size:8.5px; color:var(--mist); white-space:nowrap;}
+
+  /* 3D Center Core HUD */
+  .center-core-hud{
+    position:absolute; left:50%; top:50%; transform:translate(-50%, -50%);
+    text-align:center; pointer-events:none; z-index:15;
+  }
+  .core-shield-box{
+    display:inline-flex; align-items:center; justify-content:center;
+    width:56px; height:56px; border-radius:16px;
+    background:rgba(4, 10, 8, 0.7); backdrop-filter:blur(10px);
+    border:1px solid rgba(57, 255, 176, 0.6);
+    box-shadow:0 0 30px rgba(57, 255, 176, 0.45);
+    animation:floatCenter 4s ease-in-out infinite;
+  }
+  @keyframes floatCenter{0%,100%{transform:translateY(0);} 50%{transform:translateY(-6px);}}
+  
+  .core-label{
+    margin-top:6px; font-size:13px; font-weight:700; color:#fff;
+    text-shadow:0 0 15px rgba(57,255,176,0.6);
+  }
+  .core-sublabel{
+    font-size:8px; font-family:'JetBrains Mono',monospace; letter-spacing:.2em; color:var(--mist);
+  }
+
+  /* 3D Stage Info Tooltip */
+  .stage-info-card{
+    position:absolute; bottom:12px; left:12px; right:12px;
+    background:rgba(6, 15, 13, 0.9); backdrop-filter:blur(16px);
+    border:1px solid rgba(57, 255, 176, 0.35); border-radius:16px; padding:12px 16px;
+    display:flex; align-items:center; justify-content:space-between;
+    box-shadow:0 10px 30px rgba(0,0,0,0.6), 0 0 25px rgba(57,255,176,0.15);
+    transition:all .3s ease; pointer-events:auto; z-index:30;
+  }
+  .stage-info-card .tag{font-size:10px; color:var(--em); font-family:'JetBrains Mono',monospace;}
+  .stage-info-card .val{font-size:13px; font-weight:600; color:#fff; margin-top:2px;}
+  .hud-3d-ctrls{
+    position:absolute; top:12px; right:12px; display:flex; gap:8px; z-index:30; pointer-events:auto;
+  }
+  .hud-btn{
+    background:rgba(6,15,13,0.8); border:1px solid rgba(57,255,176,0.3); border-radius:8px;
+    padding:5px 9px; font-size:10px; color:var(--em); font-family:'JetBrains Mono',monospace;
+    cursor:pointer; transition:all .2s; backdrop-filter:blur(8px);
+  }
+  .hud-btn:hover{background:rgba(57,255,176,0.2); border-color:var(--em); color:#fff;}
+
+  /* sections */
+  section{position:relative; padding:110px 0;}
+  h2{font-family:'Space Grotesk',sans-serif; font-size:32px; font-weight:700; letter-spacing:-0.01em; margin:0;}
+  @media (min-width:768px){h2{font-size:40px;}}
+  .section-sub{color:var(--mist); margin-top:14px; max-width:520px; font-size:16px; line-height:1.6;}
+
+  /* 3D tilted lifecycle cards */
+  .lifecycle{position:relative; margin-top:64px;}
+  .lifecycle-line{position:absolute; top:36px; left:0; right:0; height:2px;
+    background:linear-gradient(90deg, transparent, rgba(57,255,176,.6), rgba(60,224,232,.6), transparent); display:none;}
+  @media (min-width:768px){.lifecycle-line{display:block;}}
+  .lifecycle-grid{display:grid; grid-template-columns:repeat(2,1fr); gap:24px;}
+  @media (min-width:768px){.lifecycle-grid{grid-template-columns:repeat(5,1fr);}}
+  
+  .stage-card{
+    background:rgba(10, 20, 17, 0.45); border:1px solid var(--line); border-radius:20px;
+    padding:24px 18px; text-align:center; transition:all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    position:relative; overflow:hidden; backdrop-filter:blur(10px);
+  }
+  .stage-card::before{
+    content:''; position:absolute; inset:0; border-radius:20px;
+    background:radial-gradient(circle at 50% 0%, rgba(57,255,176,0.15), transparent 70%);
+    opacity:0; transition:opacity 0.3s;
+  }
+  .stage-card:hover{
+    transform:translateY(-8px) scale(1.03);
+    border-color:rgba(57,255,176,0.6);
+    box-shadow:0 15px 35px rgba(0,0,0,0.5), 0 0 25px rgba(57,255,176,0.25);
+  }
+  .stage-card:hover::before{opacity:1;}
+  .stage-card .ic{
+    position:relative; z-index:1; width:52px; height:52px; border-radius:14px;
+    background:rgba(5,10,8,0.9); border:1px solid rgba(57,255,176,0.4);
+    display:flex; align-items:center; justify-content:center; margin:0 auto 16px;
+    box-shadow:0 0 20px rgba(57,255,176,0.15); transition:all 0.3s;
+  }
+  .stage-card:hover .ic{border-color:var(--em); box-shadow:0 0 25px rgba(57,255,176,0.45); transform:rotate(5deg) scale(1.1);}
+  .stage-card .n{font-size:11px; color:var(--em); letter-spacing:.1em; font-weight:600;}
+  .stage-card .l{font-family:'Space Grotesk',sans-serif; font-size:18px; font-weight:600; margin-top:6px; color:#fff;}
+  .stage-card .sub{font-size:12px; color:var(--mist); margin-top:6px; line-height:1.4;}
+
+  /* Features Grid with 3D Tilt */
+  .feat-grid{margin-top:56px; display:grid; grid-template-columns:1fr; gap:24px;}
+  @media (min-width:640px){.feat-grid{grid-template-columns:1fr 1fr;}}
+  
+  .feat-card{
+    border:1px solid var(--line); border-radius:20px; padding:32px;
+    background:rgba(10,20,18,0.4); backdrop-filter:blur(14px);
+    transition:all .35s cubic-bezier(0.2, 0.8, 0.2, 1); position:relative; overflow:hidden;
+  }
+  .feat-card:hover{
+    border-color:rgba(57,255,176,0.6); background:rgba(10,24,20,0.7);
+    transform:translateY(-6px);
+    box-shadow:0 20px 40px rgba(0,0,0,0.6), 0 0 30px rgba(57,255,176,0.2);
+  }
+  .feat-top{display:flex; align-items:center; justify-content:space-between; margin-bottom:28px;}
+  .feat-top .n{font-size:12px; color:var(--em); font-weight:600; letter-spacing:.1em;}
+  .feat-ic{
+    width:48px; height:48px; border-radius:14px; border:1px solid rgba(57,255,176,0.3);
+    background:rgba(57,255,176,0.08); display:flex; align-items:center; justify-content:center;
+    transition:all .3s;
+  }
+  .feat-card:hover .feat-ic{
+    border-color:var(--em); box-shadow:0 0 25px rgba(57,255,176,0.4);
+    background:rgba(57,255,176,0.15); transform:scale(1.08);
+  }
+  .feat-card h3{font-family:'Space Grotesk',sans-serif; font-size:20px; font-weight:600; margin:0; color:#fff;}
+  .feat-card p{font-size:14px; color:var(--mist); margin-top:10px; line-height:1.65;}
+
+  /* CTA */
+  .cta-section{text-align:center; padding:140px 0; overflow:hidden; position:relative;}
+  .cta-glow{position:absolute; left:50%; top:50%; transform:translate(-50%,-50%); width:700px; height:700px;
+    border-radius:50%; background:rgba(10,77,58,0.35); filter:blur(180px); pointer-events:none;}
+  .cta-section h2{font-size:38px; max-width:720px; margin:0 auto;}
+  @media (min-width:768px){.cta-section h2{font-size:50px;}}
+  .cta-section .accent{color:var(--em); font-size:22px; margin-top:14px; font-family:'Space Grotesk',sans-serif; text-shadow:0 0 20px rgba(57,255,176,0.4);}
+
+  /* Footer */
+  footer{border-top:1px solid var(--line); padding:56px 0; background:rgba(4,8,7,0.8);}
+  .foot-grid{display:flex; flex-direction:column; gap:32px;}
+  @media (min-width:768px){.foot-grid{flex-direction:row; align-items:center; justify-content:space-between;}}
+  .foot-brand{display:flex; gap:14px; align-items:flex-start;}
+  .foot-brand p{font-size:12px; color:var(--mist); max-width:240px; margin:4px 0 0; line-height:1.5;}
+  .foot-links{display:flex; flex-wrap:wrap; gap:28px; font-size:14px; color:var(--mist); list-style:none; padding:0; margin:0;}
+  .foot-links a:hover{color:var(--em);}
+  .foot-college{font-size:12px; color:var(--mist); text-align:left;}
+  @media (min-width:768px){.foot-college{text-align:right;}}
+</style>
+</head>
+<body>
+
+<!-- Navbar -->
+<nav id="nav" class="grid-bg" style="background:transparent;">
+  <div class="wrap">
+    <a href="#home" class="brand">
+      <svg width="36" height="40" viewBox="0 0 100 110">
+        <path d="M50 2 L94 20 V52 C94 80 76 98 50 108 C24 98 6 80 6 52 V20 Z" fill="rgba(6,20,16,.9)" stroke="#39ffb0" stroke-width="2"/>
+        <g stroke="#39ffb0" stroke-width="2.4" fill="none">
+          <circle cx="50" cy="46" r="6.5"/>
+          <circle cx="50" cy="30" r="4.2"/>
+          <circle cx="37" cy="53" r="4.2"/>
+          <circle cx="63" cy="53" r="4.2"/>
+          <line x1="50" y1="40" x2="50" y2="34"/>
+          <line x1="45.5" y1="49" x2="40" y2="51.5"/>
+          <line x1="54.5" y1="49" x2="60" y2="51.5"/>
+        </g>
+        <path d="M50 60 C40 62 34 70 36 80 C44 82 52 78 54 68 C58 76 68 78 74 72 C72 62 62 58 54 62 Z" fill="#0fe6a0" opacity=".85"/>
+      </svg>
+      <span><strong>Haz<span style="color:var(--em)">Track</span></strong><small>HAZARDOUS WASTE MANAGEMENT SYSTEM</small></span>
+    </a>
+    <ul class="nav-links">
+      <li><a href="#home">Home</a></li>
+      <li><a href="#trace">How It Works</a></li>
+      <li><a href="#features">Features</a></li>
+      <li><a href="#footer">About</a></li>
+    </ul>
+    <a href="#access" class="btn-outline">Access Platform</a>
+  </div>
+</nav>
+
+<!-- Hero Section -->
+<section id="home" class="hero grid-bg">
+  <div class="glow1"></div><div class="glow2"></div>
+  <div class="wrap hero-grid">
+    <div>
+      <div class="eyebrow mono">
+        <span class="pulse-dot"></span>
+        <span>REAL-TIME 3D TELEMETRY · CPCB COMPLIANT</span>
+      </div>
+      <h1 class="display">
+        <span>Every waste.</span>
+        <span>Every movement.</span>
+        <span>Every record.</span>
+      </h1>
+      <p class="lede">Complete end-to-end 3D traceability from generation to final disposal — one unified, secure cryptographic system for every stage a hazardous shipment moves through.</p>
+      
+      <div class="cta-row">
+        <a id="access" class="btn-primary" href="#trace">Explore 3D Network →</a>
+        <a class="btn-ghost" href="#features">▷ View Features</a>
+      </div>
+
+      <div class="support-row">
+        <div class="support-item">
+          <div class="support-icon">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#39ffb0" stroke-width="2"><path d="M12 2l8 3v6c0 5-3.5 9-8 11-4.5-2-8-6-8-11V5z"/></svg>
+          </div>
+          <div><div class="t">Safe</div><div class="s">Strict containment</div></div>
+        </div>
+        <div class="support-item">
+          <div class="support-icon">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#39ffb0" stroke-width="2"><path d="M4 20c8-1 14-7 14-15C10 6 4 12 4 20z"/></svg>
+          </div>
+          <div><div class="t">Sustainable</div><div class="s">Mass balance verified</div></div>
+        </div>
+        <div class="support-item">
+          <div class="support-icon">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#39ffb0" stroke-width="2"><circle cx="6" cy="12" r="2.4"/><circle cx="18" cy="6" r="2.4"/><circle cx="18" cy="18" r="2.4"/><line x1="8" y1="11" x2="16" y2="7"/><line x1="8" y1="13" x2="16" y2="17"/></svg>
+          </div>
+          <div><div class="t">Traceable</div><div class="s">Immutable 3D audit</div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 3D Interactive WebGL Stage Container -->
+    <div class="chain-3d-stage" id="stageContainer">
+      <div class="canvas-container" id="canvas3d" title="Click and drag to rotate 3D view"></div>
+      
+      <!-- Center 3D Core HUD -->
+      <div class="center-core-hud" id="centerCoreHud">
+        <div class="core-shield-box">
+          <svg width="30" height="34" viewBox="0 0 100 110">
+            <path d="M50 2 L94 20 V52 C94 80 76 98 50 108 C24 98 6 80 6 52 V20 Z" fill="rgba(6,20,16,.9)" stroke="#39ffb0" stroke-width="3"/>
+            <circle cx="50" cy="46" r="8" fill="#39ffb0"/>
+            <path d="M50 60 C40 62 34 70 36 80 C44 82 52 78 54 68 C58 76 68 78 74 72 C72 62 62 58 54 62 Z" fill="#0fe6a0"/>
+          </svg>
+        </div>
+        <div class="core-label">Haz<span style="color:var(--em)">Track</span></div>
+        <div class="core-sublabel">CORE 3D HUB</div>
+      </div>
+
+      <!-- 3D Projected Dynamic HTML Badges Overlay -->
+      <div class="hud-badge-container" id="badgeContainer"></div>
+
+      <!-- Controls & Mode Selector -->
+      <div class="hud-3d-ctrls">
+        <button class="hud-btn" id="btnResetView">⟲ Reset 3D</button>
+        <button class="hud-btn" id="btnToggleSpin">⏸ Pause</button>
+      </div>
+
+      <!-- Interactive 3D Status HUD -->
+      <div class="stage-info-card" id="stageHudCard">
+        <div>
+          <div class="tag mono" id="hudStageTag">ACTIVE TELEMETRY NETWORK</div>
+          <div class="val" id="hudStageVal">5 Connected Chain Nodes · 100% CPCB Compliance</div>
+        </div>
+        <div class="tag mono" style="color:var(--cyan); text-align:right;">
+          <div style="font-size:12px; font-weight:bold;">LIVE 3D</div>
+          <div style="font-size:9px; color:var(--mist);">60 FPS WEBGL</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Traceability Lifecycle Section -->
+<section id="trace">
+  <div class="wrap">
+    <h2>Complete 3D Traceability Chain</h2>
+    <p class="section-sub">From generation to final disposal, every lifecycle node is rendered, monitored, and mathematically verified.</p>
+    <div class="lifecycle">
+      <div class="lifecycle-line"></div>
+      <div class="lifecycle-grid" id="lifecycle"></div>
+    </div>
+  </div>
+</section>
+
+<!-- Features Grid -->
+<section id="features">
+  <div class="wrap">
+    <h2 style="max-width:540px;">Built for Complete Hazardous Control</h2>
+    <div class="feat-grid" id="features-grid"></div>
+  </div>
+</section>
+
+<!-- CTA Section -->
+<section class="cta-section">
+  <div class="cta-glow"></div>
+  <div class="wrap">
+    <h2 class="display">From generation to final destruction.</h2>
+    <p class="accent">One unified 3D architecture. Zero discrepancies.</p>
+    <a class="btn-primary" href="#home" style="margin-top:36px;">Launch HazTrack Console →</a>
+  </div>
+</section>
+
+<!-- Footer -->
+<footer id="footer">
+  <div class="wrap foot-grid">
+    <div class="foot-brand">
+      <svg width="34" height="38" viewBox="0 0 100 110">
+        <path d="M50 2 L94 20 V52 C94 80 76 98 50 108 C24 98 6 80 6 52 V20 Z" fill="rgba(6,20,16,.9)" stroke="#39ffb0" stroke-width="2"/>
+        <g stroke="#39ffb0" stroke-width="2.4" fill="none">
+          <circle cx="50" cy="46" r="6.5"/><circle cx="50" cy="30" r="4.2"/><circle cx="37" cy="53" r="4.2"/><circle cx="63" cy="53" r="4.2"/>
+        </g>
+        <path d="M50 60 C40 62 34 70 36 80 C44 82 52 78 54 68 C58 76 68 78 74 72 C72 62 62 58 54 62 Z" fill="#0fe6a0" opacity=".85"/>
+      </svg>
+      <div><strong>Haz<span style="color:var(--em)">Track</span></strong><p>Hazardous Waste Management &amp; Tracking System</p></div>
+    </div>
+    <ul class="foot-links">
+      <li><a href="#home">Home</a></li>
+      <li><a href="#trace">How It Works</a></li>
+      <li><a href="#features">Features</a></li>
+      <li><a href="#footer">About</a></li>
+    </ul>
+    <div class="foot-college">
+      <div style="font-weight:600; color:#fff;">Department of Information Technology</div>
+      <div>Easwari Engineering College, Chennai</div>
+    </div>
+  </div>
+</footer>
+
+<script>
+window.addEventListener('scroll', () => {
+  document.getElementById('nav').classList.toggle('scrolled', window.scrollY > 24);
+});
+
+// SVG Icons Definition
+const ICONS = {
+  flask: '<path d="M9 3h6M10 3v6l-5 9a2 2 0 0 0 2 3h10a2 2 0 0 0 2-3l-5-9V3"/>',
+  package: '<path d="M21 8l-9-5-9 5 9 5 9-5z"/><path d="M3 8v8l9 5 9-5V8"/><path d="M12 13v8"/>',
+  truck: '<path d="M2 8h11v8H2z"/><path d="M13 11h4l3 3v2h-7z"/><circle cx="6" cy="18" r="1.6"/><circle cx="17" cy="18" r="1.6"/>',
+  factory: '<path d="M3 20V10l5 3V10l5 3V8l5 3v9H3z"/>',
+  recycle: '<path d="M7 19H4a1 1 0 0 1-.8-1.6l2-2.7"/><path d="M9 3l3 5-2.6 1.5"/><path d="M18.5 12.5l2 3.4a1 1 0 0 1-.8 1.6h-4"/><path d="M14 20l-3-3 3-3"/><path d="M5.5 8.5l3 1.7"/>',
+  radar: '<circle cx="12" cy="12" r="9"/><path d="M12 12l6-4"/><circle cx="12" cy="12" r="1.6"/>',
+  bell: '<path d="M6 10a6 6 0 0 1 12 0c0 5 2 6 2 6H4s2-1 2-6"/><path d="M10 20a2 2 0 0 0 4 0"/>',
+  qr: '<rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><path d="M14 14h3v3h-3zM19 14h2M14 19h2M19 19h2"/>',
+  shieldcheck: '<path d="M12 2l8 3v6c0 5-3.5 9-8 11-4.5-2-8-6-8-11V5z"/><path d="M9 12l2 2 4-4"/>'
+};
+
+function ic(name, size=18){ 
+  return `<svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${ICONS[name]}</svg>`; 
+}
+
+// Stage configuration data
+const STAGES = [
+  { id: 0, num:'01', label:'LAB / INDUSTRY', sub:'Generation Point', icon:'flask', angle:-90, metric:'Manifest ID: HW-9041 · Sealed' },
+  { id: 1, num:'02', label:'COLLECTION', sub:'Container Intake', icon:'package', angle:-18, metric:'Tare Weight: 420 kg · Verified' },
+  { id: 2, num:'03', label:'TRANSPORT', sub:'Secured GPS Route', icon:'truck', angle:54, metric:'Route: Safe Corridor #4 · 32 km/h' },
+  { id: 3, num:'04', label:'TREATMENT', sub:'Neutralization Plant', icon:'factory', angle:126, metric:'Temp: 980°C · Scrubber Normal' },
+  { id: 4, num:'05', label:'DISPOSAL', sub:'Final CPCB Record', icon:'recycle', angle:198, metric:'Certificate: CPCB-CERT-8810A' },
+];
+
+// ==========================================
+// 3D THREE.JS HOLOGRAPHIC SCENE IMPLEMENTATION
+// ==========================================
+(function init3DScene(){
+  const container = document.getElementById('canvas3d');
+  const badgeContainer = document.getElementById('badgeContainer');
+  const stageHudCard = document.getElementById('stageHudCard');
+  const hudStageTag = document.getElementById('hudStageTag');
+  const hudStageVal = document.getElementById('hudStageVal');
+  const btnReset = document.getElementById('btnResetView');
+  const btnToggleSpin = document.getElementById('btnToggleSpin');
+  
+  if (!container || typeof THREE === 'undefined') return;
+
+  const width = container.clientWidth || 540;
+  const height = container.clientHeight || 540;
+
+  // Scene, Camera, Renderer
+  const scene = new THREE.Scene();
+  const camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 1000);
+  camera.position.set(0, 1.2, 10);
+
+  const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true, powerPreference: 'high-performance' });
+  renderer.setSize(width, height);
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  container.appendChild(renderer.domElement);
+
+  // Lighting
+  const ambientLight = new THREE.AmbientLight(0xffffff, 0.8);
+  scene.add(ambientLight);
+
+  const pointLight1 = new THREE.PointLight(0x39ffb0, 3, 20);
+  pointLight1.position.set(5, 6, 5);
+  scene.add(pointLight1);
+
+  const pointLight2 = new THREE.PointLight(0x3ce0e8, 2, 20);
+  pointLight2.position.set(-5, -4, 4);
+  scene.add(pointLight2);
+
+  // Main 3D Pivot Group
+  const worldGroup = new THREE.Group();
+  scene.add(worldGroup);
+
+  // 1. Central 3D Crystal Core
+  const coreGroup = new THREE.Group();
+  worldGroup.add(coreGroup);
+
+  // Inner Icosahedron Core
+  const icoGeo = new THREE.IcosahedronGeometry(0.85, 1);
+  const icoMat = new THREE.MeshStandardMaterial({
+    color: 0x0fe6a0,
+    emissive: 0x0a4d3a,
+    emissiveIntensity: 0.8,
+    roughness: 0.2,
+    metalness: 0.8,
+    wireframe: false
+  });
+  const coreIco = new THREE.Mesh(icoGeo, icoMat);
+  coreGroup.add(coreIco);
+
+  // Outer Wireframe Cage
+  const wireGeo = new THREE.IcosahedronGeometry(1.2, 1);
+  const wireMat = new THREE.MeshBasicMaterial({
+    color: 0x39ffb0,
+    wireframe: true,
+    transparent: true,
+    opacity: 0.35
+  });
+  const wireCage = new THREE.Mesh(wireGeo, wireMat);
+  coreGroup.add(wireCage);
+
+  // 3D Orbital Rings around Core
+  const ringGeo1 = new THREE.RingGeometry(1.4, 1.45, 64);
+  const ringMat1 = new THREE.MeshBasicMaterial({
+    color: 0x3ce0e8,
+    side: THREE.DoubleSide,
+    transparent: true,
+    opacity: 0.4
+  });
+  const orbitRing1 = new THREE.Mesh(ringGeo1, ringMat1);
+  orbitRing1.rotation.x = Math.PI / 3;
+  coreGroup.add(orbitRing1);
+
+  const ringGeo2 = new THREE.RingGeometry(1.7, 1.74, 64);
+  const ringMat2 = new THREE.MeshBasicMaterial({
+    color: 0x39ffb0,
+    side: THREE.DoubleSide,
+    transparent: true,
+    opacity: 0.3
+  });
+  const orbitRing2 = new THREE.Mesh(ringGeo2, ringMat2);
+  orbitRing2.rotation.y = Math.PI / 4;
+  orbitRing2.rotation.x = -Math.PI / 6;
+  coreGroup.add(orbitRing2);
+
+  // 2. 3D Floating Nodes & Connectors
+  const ORBIT_RADIUS = 3.4;
+  const nodeMeshes = [];
+  const node3DPositions = [];
+  const badgeElements = [];
+
+  // Create HTML Badge Elements overlay
+  STAGES.forEach((s, idx) => {
+    const badge = document.createElement('div');
+    badge.className = 'node-3d-badge';
+    badge.dataset.id = idx;
+    badge.innerHTML = `
+      <div class="node-pill">
+        <div class="node-icon-circle">${ic(s.icon, 14)}</div>
+        <div class="node-text-col">
+          <span class="node-num">${s.num}. STAGE</span>
+          <span class="node-title">${s.label}</span>
+          <span class="node-sub">${s.sub}</span>
+        </div>
+      </div>
+    `;
+    badgeContainer.appendChild(badge);
+    badgeElements.push(badge);
+
+    // Hover / Click interactivity
+    badge.addEventListener('mouseenter', () => highlightStage(idx));
+    badge.addEventListener('click', () => highlightStage(idx));
+  });
+
+  // Calculate 3D positions along an inclined orbital circle
+  STAGES.forEach((s, idx) => {
+    const rad = (s.angle * Math.PI) / 180;
+    // 3D position with subtle wave in Z
+    const x = ORBIT_RADIUS * Math.cos(rad);
+    const y = ORBIT_RADIUS * Math.sin(rad) * 0.82;
+    const z = ORBIT_RADIUS * Math.sin(rad * 2) * 0.45;
+    const pos = new THREE.Vector3(x, y, z);
+    node3DPositions.push(pos);
+
+    // Node 3D Object Group
+    const nodeGroup = new THREE.Group();
+    nodeGroup.position.copy(pos);
+
+    // Glowing Sphere
+    const sphereGeo = new THREE.SphereGeometry(0.26, 24, 24);
+    const sphereMat = new THREE.MeshStandardMaterial({
+      color: 0x39ffb0,
+      emissive: 0x0fe6a0,
+      emissiveIntensity: 0.9,
+      roughness: 0.1,
+      metalness: 0.9
+    });
+    const sphere = new THREE.Mesh(sphereGeo, sphereMat);
+    nodeGroup.add(sphere);
+
+    // Node Halo Ring
+    const haloGeo = new THREE.TorusGeometry(0.42, 0.025, 16, 32);
+    const haloMat = new THREE.MeshBasicMaterial({
+      color: 0x3ce0e8,
+      transparent: true,
+      opacity: 0.7
+    });
+    const halo = new THREE.Mesh(haloGeo, haloMat);
+    halo.rotation.x = Math.PI / 2;
+    nodeGroup.add(halo);
+
+    // Vertical Energy Pillar Light
+    const cylinderGeo = new THREE.CylinderGeometry(0.015, 0.015, 1.2, 8);
+    const cylinderMat = new THREE.MeshBasicMaterial({
+      color: 0x39ffb0,
+      transparent: true,
+      opacity: 0.45
+    });
+    const cylinder = new THREE.Mesh(cylinderGeo, cylinderMat);
+    nodeGroup.add(cylinder);
+
+    worldGroup.add(nodeGroup);
+    nodeMeshes.push({ group: nodeGroup, sphere, halo, pos, baseZ: z });
+  });
+
+  // 3. Connect Nodes with 3D Glowing Spline Tube
+  const closedCurve = new THREE.CatmullRomCurve3(node3DPositions, true, 'catmullrom', 0.15);
+  const tubeGeo = new THREE.TubeGeometry(closedCurve, 100, 0.035, 8, true);
+  const tubeMat = new THREE.MeshBasicMaterial({
+    color: 0x145a44,
+    transparent: true,
+    opacity: 0.65
+  });
+  const tubeMesh = new THREE.Mesh(tubeGeo, tubeMat);
+  worldGroup.add(tubeMesh);
+
+  // Outer Glowing Dashed Spline
+  const curvePoints = closedCurve.getPoints(200);
+  const lineGeo = new THREE.BufferGeometry().setFromPoints(curvePoints);
+  const lineMat = new THREE.LineBasicMaterial({
+    color: 0x39ffb0,
+    transparent: true,
+    opacity: 0.8
+  });
+  const glowLine = new THREE.Line(lineGeo, lineMat);
+  worldGroup.add(glowLine);
+
+  // 4. Moving 3D Energy Packets (Simulating Waste Shipments in Transit)
+  const packetCount = 4;
+  const packets = [];
+  for (let i = 0; i < packetCount; i++) {
+    const pGeo = new THREE.SphereGeometry(0.09, 16, 16);
+    const pMat = new THREE.MeshBasicMaterial({
+      color: i % 2 === 0 ? 0x39ffb0 : 0x3ce0e8
+    });
+    const pMesh = new THREE.Mesh(pGeo, pMat);
+    worldGroup.add(pMesh);
+    packets.push({ mesh: pMesh, progress: i / packetCount, speed: 0.08 });
+  }
+
+  // 5. 3D Floating Particle Field (Cyber Nebula)
+  const particleCount = 220;
+  const particleGeo = new THREE.BufferGeometry();
+  const positions = new Float32Array(particleCount * 3);
+  const colors = new Float32Array(particleCount * 3);
+
+  for (let i = 0; i < particleCount; i++) {
+    const i3 = i * 3;
+    positions[i3] = (Math.random() - 0.5) * 16;
+    positions[i3 + 1] = (Math.random() - 0.5) * 14;
+    positions[i3 + 2] = (Math.random() - 0.5) * 10;
+
+    const isCyan = Math.random() > 0.6;
+    colors[i3] = isCyan ? 0.23 : 0.22;
+    colors[i3 + 1] = isCyan ? 0.88 : 1.0;
+    colors[i3 + 2] = isCyan ? 0.91 : 0.69;
+  }
+  particleGeo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+  particleGeo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+
+  const particleMat = new THREE.PointsMaterial({
+    size: 0.07,
+    vertexColors: true,
+    transparent: true,
+    opacity: 0.65
+  });
+  const particleField = new THREE.Points(particleGeo, particleMat);
+  worldGroup.add(particleField);
+
+  // Interactive mouse tracking and drag rotation
+  let isDragging = false;
+  let prevMouseX = 0, prevMouseY = 0;
+  let targetRotX = 0.1, targetRotY = 0;
+  let autoRotate = true;
+  let activeStageIdx = -1;
+
+  container.addEventListener('mousedown', (e) => {
+    isDragging = true;
+    prevMouseX = e.clientX;
+    prevMouseY = e.clientY;
+  });
+
+  window.addEventListener('mouseup', () => { isDragging = false; });
+  
+  window.addEventListener('mousemove', (e) => {
+    if (isDragging) {
+      const deltaX = e.clientX - prevMouseX;
+      const deltaY = e.clientY - prevMouseY;
+      targetRotY += deltaX * 0.008;
+      targetRotX += deltaY * 0.008;
+      prevMouseX = e.clientX;
+      prevMouseY = e.clientY;
+    } else {
+      // Subtle parallax on hero hover
+      const rect = container.getBoundingClientRect();
+      if (e.clientX >= rect.left && e.clientX <= rect.right && e.clientY >= rect.top && e.clientY <= rect.bottom) {
+        const normX = (e.clientX - (rect.left + rect.width / 2)) / (rect.width / 2);
+        const normY = (e.clientY - (rect.top + rect.height / 2)) / (rect.height / 2);
+        if (!autoRotate) {
+          targetRotY = normX * 0.4;
+          targetRotX = -normY * 0.3;
+        }
+      }
+    }
+  });
+
+  // Touch controls for mobile
+  container.addEventListener('touchstart', (e) => {
+    if (e.touches.length === 1) {
+      isDragging = true;
+      prevMouseX = e.touches[0].clientX;
+      prevMouseY = e.touches[0].clientY;
+    }
+  });
+  window.addEventListener('touchmove', (e) => {
+    if (isDragging && e.touches.length === 1) {
+      const deltaX = e.touches[0].clientX - prevMouseX;
+      const deltaY = e.touches[0].clientY - prevMouseY;
+      targetRotY += deltaX * 0.008;
+      targetRotX += deltaY * 0.008;
+      prevMouseX = e.touches[0].clientX;
+      prevMouseY = e.touches[0].clientY;
+    }
+  });
+  window.addEventListener('touchend', () => { isDragging = false; });
+
+  // Reset 3D View Button
+  if (btnReset) {
+    btnReset.addEventListener('click', () => {
+      targetRotX = 0.1;
+      targetRotY = 0;
+      worldGroup.rotation.set(0, 0, 0);
+      autoRotate = true;
+      if (btnToggleSpin) btnToggleSpin.textContent = '⏸ Pause';
+    });
+  }
+
+  // Toggle Auto-Rotate Button
+  if (btnToggleSpin) {
+    btnToggleSpin.addEventListener('click', () => {
+      autoRotate = !autoRotate;
+      btnToggleSpin.textContent = autoRotate ? '⏸ Pause' : '▶ Spin';
+    });
+  }
+
+  function highlightStage(idx) {
+    activeStageIdx = idx;
+    const stage = STAGES[idx];
+    
+    badgeElements.forEach((b, i) => {
+      b.classList.toggle('active', i === idx);
+    });
+
+    if (hudStageTag && hudStageVal) {
+      hudStageTag.textContent = `STAGE ${stage.num} · ${stage.label}`;
+      hudStageVal.textContent = `${stage.sub} — ${stage.metric}`;
+      stageHudCard.style.borderColor = 'rgba(57, 255, 176, 0.8)';
+      stageHudCard.style.boxShadow = '0 0 30px rgba(57,255,176,0.35)';
+      setTimeout(() => {
+        stageHudCard.style.borderColor = 'rgba(57, 255, 176, 0.35)';
+        stageHudCard.style.boxShadow = '0 10px 30px rgba(0,0,0,0.6)';
+      }, 2500);
+    }
+
+    // Pulse node 3D scale
+    if (nodeMeshes[idx]) {
+      nodeMeshes[idx].sphere.scale.set(1.6, 1.6, 1.6);
+      setTimeout(() => {
+        if (nodeMeshes[idx]) nodeMeshes[idx].sphere.scale.set(1, 1, 1);
+      }, 400);
+    }
+  }
+
+  // Handle Resize
+  window.addEventListener('resize', () => {
+    const w = container.clientWidth || 540;
+    const h = container.clientHeight || 540;
+    camera.aspect = w / h;
+    camera.updateProjectionMatrix();
+    renderer.setSize(w, h);
+  });
+
+  // Project 3D vector to 2D screen coordinate for DOM badges
+  const tempV = new THREE.Vector3();
+  function updateBadgePositions() {
+    const rect = container.getBoundingClientRect();
+    const halfW = rect.width / 2;
+    const halfH = rect.height / 2;
+
+    nodeMeshes.forEach((n, idx) => {
+      // Get world position of node
+      n.group.getWorldPosition(tempV);
+      // Project to normalized device coordinate (-1 to +1)
+      tempV.project(camera);
+
+      // Convert to CSS pixels
+      const x = (tempV.x * halfW) + halfW;
+      const y = -(tempV.y * halfH) + halfH;
+
+      const badge = badgeElements[idx];
+      if (badge) {
+        badge.style.left = `${x}px`;
+        badge.style.top = `${y}px`;
+        // Scale with depth (perspective depth cue)
+        const depthScale = THREE.MathUtils.clamp(1 + (tempV.z * -0.5), 0.78, 1.15);
+        badge.style.transform = `translate(-50%, -50%) scale(${depthScale})`;
+        badge.style.zIndex = tempV.z < 0 ? '25' : '15';
+        badge.style.opacity = tempV.z > 0.95 ? '0.3' : '1';
+      }
+    });
+  }
+
+  // Main Render Animation Loop
+  const clock = new THREE.Clock();
+  function animate() {
+    requestAnimationFrame(animate);
+    const delta = clock.getDelta();
+    const elapsed = clock.getElapsedTime();
+
+    // 1. Auto-rotation or smooth damping
+    if (autoRotate && !isDragging) {
+      targetRotY += 0.005;
+    }
+    worldGroup.rotation.y += (targetRotY - worldGroup.rotation.y) * 0.08;
+    worldGroup.rotation.x += (targetRotX - worldGroup.rotation.x) * 0.08;
+
+    // 2. Crystal Core Rotations
+    coreIco.rotation.y += 0.012;
+    coreIco.rotation.x += 0.008;
+    wireCage.rotation.y -= 0.008;
+    wireCage.rotation.z += 0.006;
+    orbitRing1.rotation.z += 0.015;
+    orbitRing2.rotation.z -= 0.012;
+
+    // 3. Float node heights subtly
+    nodeMeshes.forEach((n, idx) => {
+      n.group.position.y = n.pos.y + Math.sin(elapsed * 2 + idx) * 0.08;
+      n.halo.rotation.z += 0.02;
+    });
+
+    // 4. Update energy transit packets along 3D closed spline
+    packets.forEach((p) => {
+      p.progress += p.speed * delta;
+      if (p.progress > 1) p.progress -= 1;
+      const pointOnCurve = closedCurve.getPointAt(p.progress);
+      if (pointOnCurve) {
+        p.mesh.position.copy(pointOnCurve);
+      }
+    });
+
+    // 5. Particles slow drift
+    particleField.rotation.y = elapsed * 0.015;
+
+    // Render 3D Scene
+    renderer.render(scene, camera);
+
+    // Update projected HTML badges
+    updateBadgePositions();
+  }
+
+  animate();
+})();
+
+// Lifecycle strip builder
+(function buildLifecycle(){
+  const grid = document.getElementById('lifecycle');
+  if (!grid) return;
+  grid.innerHTML = STAGES.map((s,i)=>`
+    <div class="stage-card" style="animation-delay:${i*0.08}s">
+      <div class="ic">${ic(s.icon, 22)}</div>
+      <div class="n mono">STAGE ${s.num}</div>
+      <div class="l">${s.label.split('/')[0].trim()}</div>
+      <div class="sub">${s.sub}</div>
+    </div>`).join('');
+})();
+
+// Features builder
+(function buildFeatures(){
+  const grid = document.getElementById('features-grid');
+  if (!grid) return;
+  const feats = [
+    {n:'01', t:'Real-time 3D Telemetry', d:'Continuous GPS route monitoring and live telemetry across generators, transit corridors, and treatment plants.', icon:'radar'},
+    {n:'02', t:'Mass Balance Discrepancy Engine', d:'Automated multi-party weight reconciliation automatically flags and halts non-compliant shipments.', icon:'bell'},
+    {n:'03', t:'Tamper-Proof QR Manifests', d:'Cryptographically hashed consignment passes verified in milliseconds at regulatory checkpoints.', icon:'qr'},
+    {n:'04', t:'CPCB Compliance & Voice HUD', d:'Automated compliance generation meeting Central Pollution Control Board standards with audible incident alerts.', icon:'shieldcheck'},
+  ];
+  grid.innerHTML = feats.map(f=>`
+    <div class="feat-card">
+      <div class="feat-top">
+        <span class="n mono">${f.n} · ACTIVE</span>
+        <div class="feat-ic">${ic(f.icon, 22)}</div>
+      </div>
+      <h3>${f.t}</h3>
+      <p>${f.d}</p>
+    </div>`).join('');
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,32 @@
+{
+  "name": "hazardous-waste-management-tracking-system",
+  "version": "2.0.0",
+  "description": "HAZTRACK — Comprehensive Hazardous Waste Management & Real-Time Tracking System (Easwari Engineering College)",
+  "type": "module",
+  "scripts": {
+    "dev": "node scripts/dev.js",
+    "dev:backend": "npm --prefix backend run dev",
+    "dev:frontend": "npm --prefix frontend run dev",
+    "install:all": "npm --prefix backend install && npm --prefix frontend install",
+    "seed": "npm --prefix backend run seed",
+    "build:backend": "npm --prefix backend run build",
+    "build:frontend": "npm --prefix frontend run build",
+    "build": "npm run build:backend && npm run build:frontend",
+    "start": "npm --prefix backend start",
+    "start:backend": "npm --prefix backend start",
+    "start:frontend": "npm --prefix frontend run dev"
+  },
+  "keywords": [
+    "hazardous-waste-management",
+    "tracking-system",
+    "smart-monitoring",
+    "mass-balance",
+    "cpcb-compliance",
+    "blockchain-ready-audit",
+    "easwari-engineering-college"
+  ],
+  "author": "Department of Information Technology, Easwari Engineering College",
+  "devDependencies": {
+    "concurrently": "^10.0.5"
+  }
+}

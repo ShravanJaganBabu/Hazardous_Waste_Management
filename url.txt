@@ -1,0 +1,2 @@
+mongodb+srv://<db_username>:<HazTrack_user>@cluster0.udwkpph.mongodb.net/
+
